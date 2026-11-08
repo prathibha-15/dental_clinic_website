@@ -15,5 +15,10 @@
     "@tailwindcss/vite": "^4.3.5",
     "astro": "^7.4.7",
     "tailwindcss": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.158.0"
   }
 }
