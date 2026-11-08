@@ -1,6 +1,5 @@
 ---
 import { categories } from '../data/services';
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
 
 <section id="appointment" class="appointment" aria-labelledby="appointment-title">
@@ -8,13 +7,13 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     <div class="appointment__intro">
       <p class="eyebrow"><span aria-hidden="true"></span> REQUEST A VISIT</p>
       <h2 id="appointment-title">Let's take care of <em>your smile.</em></h2>
-      <p>Share your details and our clinic will get in touch to arrange a suitable time for your visit.</p>
+      <p>Share your details via WhatsApp to arrange a suitable time for your visit.</p>
       <div class="appointment__availability">
-        <strong>Online requests are currently unavailable.</strong>
+        <strong>Prefer to contact us directly?</strong>
         <p><a href="tel:+919488417158">Call 9488417158</a> or <a href="https://wa.me/919488417158" target="_blank" rel="noopener noreferrer">send us a WhatsApp message (opens in a new tab)</a>.</p>
       </div>
     </div>
-    <form class="appointment__form" id="appointment-form" method="post" action="/api/enquiry" novalidate data-site-key={turnstileSiteKey}>
+    <form class="appointment__form" id="appointment-form" novalidate>
       <p class="form-intro">Fields marked * are required.</p>
       <div class="form-grid">
         <div class="field">
@@ -67,33 +66,22 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
           <p class="field-error" id="consent-error"></p>
         </div>
       </div>
-      <div id="turnstile-widget" class="turnstile-widget"></div>
-      <p class="field-error" id="turnstile-error" role="status"></p>
-      <button class="button button--primary submit-button" type="submit" disabled>Submit Appointment Request <span aria-hidden="true">↗</span></button>
+      <button class="button button--primary submit-button" type="submit" disabled>Continue to WhatsApp <span aria-hidden="true">↗</span></button>
       <p id="form-status" class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
-      <noscript><p class="form-status">JavaScript is required for online requests. Please call the clinic to arrange a visit.</p></noscript>
-      <p class="form-notice">Submitting this form does not confirm an appointment. Our clinic will contact you to arrange a suitable visiting time.</p>
+      <a id="whatsapp-fallback" class="whatsapp-fallback" target="_blank" rel="noopener noreferrer" hidden>Open your prepared message in WhatsApp (opens in a new tab)</a>
+      <noscript><p class="form-status">JavaScript is required to prepare your message. Please call or WhatsApp the clinic directly.</p></noscript>
+      <p class="form-notice">Your enquiry is sent only after you press Send in WhatsApp. This does not confirm an appointment.</p>
     </form>
   </div>
 </section>
 
 <script>
-  interface Turnstile {
-    render(element: HTMLElement, options: {
-      sitekey: string;
-      action: string;
-      callback: (token: string) => void;
-      'expired-callback': () => void;
-      'error-callback': () => void;
-    }): string;
-    reset(widgetId: string): void;
-  }
-  declare global {
-    interface Window { turnstile?: Turnstile }
-  }
+  import { buildWhatsAppUrl, validateEnquiry, type Enquiry } from '../lib/whatsapp-enquiry';
+
   const form = document.querySelector<HTMLFormElement>('#appointment-form');
   const submitButton = form?.querySelector<HTMLButtonElement>('.submit-button');
   const status = form?.querySelector<HTMLElement>('#form-status');
+  const fallback = form?.querySelector<HTMLAnchorElement>('#whatsapp-fallback');
   const name = form?.querySelector<HTMLInputElement>('#patient-name');
   const mobile = form?.querySelector<HTMLInputElement>('#mobile');
   const reason = form?.querySelector<HTMLSelectElement>('#reason');
@@ -101,128 +89,64 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   const date = form?.querySelector<HTMLInputElement>('#preferred-date');
   const time = form?.querySelector<HTMLSelectElement>('#preferred-time');
   const message = form?.querySelector<HTMLTextAreaElement>('#message');
-  const widget = form?.querySelector<HTMLElement>('#turnstile-widget');
-  const widgetError = form?.querySelector<HTMLElement>('#turnstile-error');
 
-  if (form && submitButton && status && name && mobile && reason && consent && date && time && message && widget && widgetError) {
-    let token = '';
-    let widgetId: string | undefined;
-    let submitting = false;
-    const siteKey = form.dataset.siteKey;
-    if (!siteKey) {
-      status.textContent = 'Online requests are unavailable. Please call or WhatsApp the clinic.';
-    } else {
-      const turnstileScript = document.createElement('script');
-      turnstileScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      turnstileScript.async = true;
-      turnstileScript.onload = () => {
-        if (!window.turnstile) {
-          status.textContent = 'Security verification could not load. Please call or WhatsApp the clinic.';
-          return;
-        }
-        widgetId = window.turnstile.render(widget, {
-          sitekey: siteKey,
-          action: 'appointment',
-          callback: (value) => { token = value; widgetError.textContent = ''; },
-          'expired-callback': () => { token = ''; widgetError.textContent = 'Security check expired. Please complete it again.'; },
-          'error-callback': () => { token = ''; widgetError.textContent = 'Security check unavailable. Please try again or contact the clinic.'; },
-        });
-        submitButton.disabled = false;
-      };
-      turnstileScript.onerror = () => { status.textContent = 'Security verification could not load. Please call or WhatsApp the clinic.'; };
-      document.head.append(turnstileScript);
-    }
-    const fields = [
-      { control: name, error: 'patient-name-error', message: 'Enter a patient name of at most 100 characters.', valid: () => name.value.trim().length > 0 && name.value.trim().length <= 100 && !/[\u0000-\u001f\u007f]/.test(name.value.trim()) },
-      { control: mobile, error: 'mobile-error', message: 'Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9.', valid: () => /^[6-9][0-9]{9}$/.test(mobile.value.trim()) },
-      { control: reason, error: 'reason-error', message: 'Please select a reason for your visit.', valid: () => reason.value !== '' },
-      { control: consent, error: 'consent-error', message: 'Please consent to being contacted.', valid: () => consent.checked },
-    ];
-
-    const validate = (field: typeof fields[number]) => {
-      const valid = field.valid();
+  if (form && submitButton && status && fallback && name && mobile && reason && consent && date && time && message) {
+    submitButton.disabled = false;
+    const fields: Record<keyof Enquiry, { control: HTMLElement; error: string }> = {
+      patientName: { control: name, error: 'patient-name-error' },
+      mobile: { control: mobile, error: 'mobile-error' },
+      reason: { control: reason, error: 'reason-error' },
+      preferredDate: { control: date, error: 'preferred-date-error' },
+      preferredTime: { control: time, error: 'preferred-time-error' },
+      message: { control: message, error: 'message-error' },
+      consent: { control: consent, error: 'consent-error' },
+    };
+    const getEnquiry = (): Enquiry => ({
+      patientName: name.value, mobile: mobile.value, reason: reason.value,
+      preferredDate: date.value, preferredTime: time.value,
+      message: message.value, consent: consent.checked,
+    });
+    const showError = (key: keyof Enquiry, errorText: string | undefined) => {
+      const field = fields[key];
       const error = document.getElementById(field.error);
-      if (error) error.textContent = valid ? '' : field.message;
-      if (valid) field.control.removeAttribute('aria-invalid');
-      else field.control.setAttribute('aria-invalid', 'true');
-      return valid;
+      if (error) error.textContent = errorText || '';
+      if (errorText) field.control.setAttribute('aria-invalid', 'true');
+      else field.control.removeAttribute('aria-invalid');
     };
 
-    fields.forEach((field) => {
-      field.control.addEventListener('input', () => {
-        if (field.control.hasAttribute('aria-invalid')) validate(field);
-      });
-    });
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      if (submitting || !siteKey || !window.turnstile || !widgetId) return;
-      status.textContent = '';
-      const invalid = fields.filter((field) => !validate(field));
-      if (invalid.length) {
-        invalid[0].control.focus();
-        return;
-      }
-      if (!token) {
-        widgetError.textContent = 'Please complete the security check.';
-        return;
-      }
-      submitting = true;
-      submitButton.disabled = true;
-      submitButton.textContent = 'Submitting…';
-      const fieldMap: Record<string, { control: HTMLElement; error: string }> = {
-        patientName: { control: name, error: 'patient-name-error' },
-        mobile: { control: mobile, error: 'mobile-error' },
-        reason: { control: reason, error: 'reason-error' },
-        preferredDate: { control: date, error: 'preferred-date-error' },
-        preferredTime: { control: time, error: 'preferred-time-error' },
-        message: { control: message, error: 'message-error' },
-        consent: { control: consent, error: 'consent-error' },
-      };
-      Object.values(fieldMap).forEach(({ control, error }) => {
-        control.removeAttribute('aria-invalid');
-        const element = document.getElementById(error);
-        if (element) element.textContent = '';
-      });
-      try {
-        const response = await fetch('/api/enquiry', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patientName: name.value, mobile: mobile.value, reason: reason.value, preferredDate: date.value, preferredTime: time.value, message: message.value, consent: consent.checked, turnstileToken: token }),
-        });
-        const result: unknown = await response.json();
-        if (!result || typeof result !== 'object') throw new Error('Invalid response');
-        const data = result as { accepted?: unknown; fields?: Record<string, unknown> };
-        if (response.status === 200 && data.accepted === true) {
-          form.reset();
-          status.textContent = 'Your enquiry was accepted for SMS notification. Please note that this does not confirm an appointment.';
-        } else {
-          let firstInvalid: HTMLElement | undefined;
-          if (data.fields && typeof data.fields === 'object') {
-            for (const [key, value] of Object.entries(data.fields)) {
-              if (key === 'turnstile' && typeof value === 'string') widgetError.textContent = value;
-              const field = fieldMap[key];
-              if (!field || typeof value !== 'string') continue;
-              const error = document.getElementById(field.error);
-              if (error) error.textContent = value;
-              field.control.setAttribute('aria-invalid', 'true');
-              firstInvalid ||= field.control;
-            }
-          }
-          status.textContent = response.status >= 500
-            ? 'The notification could not be confirmed. Please call or WhatsApp before trying again.'
-            : 'Your enquiry was not sent. Please correct any errors and try again, or call or WhatsApp the clinic.';
-          firstInvalid?.focus();
+    for (const key of Object.keys(fields) as (keyof Enquiry)[]) {
+      const onChange = () => {
+        fallback.hidden = true;
+        fallback.removeAttribute('href');
+        status.textContent = '';
+        if (fields[key].control.hasAttribute('aria-invalid')) {
+          showError(key, validateEnquiry(getEnquiry())[key]);
         }
-      } catch {
-        status.textContent = 'We could not confirm whether your notification was accepted. Please call or WhatsApp the clinic before trying again.';
-      } finally {
-        token = '';
-        window.turnstile.reset(widgetId);
-        submitting = false;
-        submitButton.disabled = false;
-        submitButton.textContent = 'Submit Appointment Request';
+      };
+      fields[key].control.addEventListener('input', onChange);
+      fields[key].control.addEventListener('change', onChange);
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      status.textContent = '';
+      fallback.hidden = true;
+      fallback.removeAttribute('href');
+      const enquiry = getEnquiry();
+      const errors = validateEnquiry(enquiry);
+      let firstInvalid: HTMLElement | undefined;
+      for (const key of Object.keys(fields) as (keyof Enquiry)[]) {
+        showError(key, errors[key]);
+        if (errors[key] && !firstInvalid) firstInvalid = fields[key].control;
       }
+      if (firstInvalid) {
+        firstInvalid.focus();
+        return;
+      }
+      fallback.href = buildWhatsAppUrl(enquiry);
+      fallback.hidden = false;
+      status.textContent = 'Press Send in WhatsApp to send your enquiry. If WhatsApp did not open, use the link below.';
+      fallback.click();
     });
   }
 </script>
@@ -252,9 +176,9 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   .field .consent { display: flex; align-items: start; gap: 0.75rem; margin: 0; font-weight: 400; line-height: 1.5; }
   .consent input { flex: none; width: 1.1rem; height: 1.1rem; margin-top: 0.1rem; accent-color: var(--color-forest); }
   .submit-button { margin-top: 1.75rem; cursor: pointer; }
-  .turnstile-widget { margin-top: 1.5rem; }
   .submit-button:disabled { cursor: not-allowed; opacity: 0.7; }
-  .form-status:not(:empty) { margin-top: 1rem; color: #813434; font-weight: 700; }
+  .form-status:not(:empty) { margin-top: 1rem; color: #3f5b3e; font-weight: 700; }
+  .whatsapp-fallback:not([hidden]) { display: inline-block; margin-top: 0.5rem; color: #3f5b3e; font-size: 0.8rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   .form-notice { margin-top: 1rem; color: #59635a; }
   @media (max-width: 800px) { .appointment__inner { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 500px) { .form-grid { grid-template-columns: minmax(0, 1fr); } .field--wide { grid-column: auto; } .submit-button { width: 100%; } }
