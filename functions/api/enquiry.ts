@@ -1,12 +1,7 @@
 import { categories } from '../../src/data/services.ts';
-import { notifyClinic, type SmsConfiguration } from '../lib/sms.ts';
-
-interface D1Statement {
-  bind(...values: (string | number | null)[]): { run(): Promise<{ success: boolean }> };
-}
+import { notifyClinic, type SmsConfiguration, type SmsSender } from '../lib/sms.ts';
 
 interface Env extends SmsConfiguration {
-  DB: { prepare(query: string): D1Statement };
   TURNSTILE_SECRET_KEY?: string;
 }
 
@@ -19,7 +14,6 @@ type FieldErrors = Record<string, string>;
 const treatments = new Set<string>(categories.flatMap((category) => [...category.treatments]));
 const maxBodyBytes = 8192;
 const testSecret = '1x0000000000000000000000000000000AA';
-const clinicNumber = '919488417158';
 
 function json(body: object, status: number, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -96,7 +90,7 @@ async function verifyTurnstile(token: string, secret: string, request: Request):
   return success === true && (isLocalTest || (hostname === host && action === 'appointment'));
 }
 
-export async function onRequest({ request, env }: Context): Promise<Response> {
+export async function handleEnquiry({ request, env }: Context, sendSms: SmsSender): Promise<Response> {
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, { Allow: 'POST' });
   const url = new URL(request.url);
   if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
@@ -121,7 +115,7 @@ export async function onRequest({ request, env }: Context): Promise<Response> {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return json({ error: 'Expected a JSON object.' }, 400);
   const enquiry = validate(data as Record<string, unknown>);
   if (Object.keys(enquiry.errors).length) return json({ error: 'Please correct the highlighted fields.', fields: enquiry.errors }, 400);
-  if (!env.TURNSTILE_SECRET_KEY || !env.DB) {
+  if (!env.TURNSTILE_SECRET_KEY) {
     console.error('Enquiry service configuration is incomplete.');
     return json({ error: 'The enquiry service is temporarily unavailable.' }, 503);
   }
@@ -134,31 +128,25 @@ export async function onRequest({ request, env }: Context): Promise<Response> {
     return json({ error: 'Security verification is temporarily unavailable.' }, 503);
   }
 
-  const reference = crypto.randomUUID();
   try {
-    const result = await env.DB.prepare(
-      'INSERT INTO appointment_enquiries (id, patient_name, mobile_number, treatment, preferred_date, preferred_time, additional_message, consent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    ).bind(reference, enquiry.name, enquiry.mobile, enquiry.treatment, enquiry.date || null, enquiry.time || null, enquiry.message || null, 1).run();
-    if (!result.success) throw new Error('Insert failed');
+    const result = await sendSms({
+      patientName: enquiry.name,
+      mobile: enquiry.mobile,
+      treatment: enquiry.treatment,
+      preferredDate: enquiry.date,
+      preferredTime: enquiry.time,
+      message: enquiry.message,
+    }, env);
+    if (result === 'accepted') return json({ accepted: true }, 200);
+    if (result === 'rejected') return json({ error: 'The SMS provider rejected the request. Please contact the clinic directly.' }, 502);
+    if (result === 'unknown') return json({ error: 'We could not confirm whether the notification was accepted. Please contact the clinic before retrying.' }, 502);
+    return json({ error: 'The SMS notification service is unavailable. Please contact the clinic directly.' }, 503);
   } catch {
-    console.error('Unable to save an enquiry.');
-    return json({ error: 'Unable to save the enquiry. Please contact the clinic.' }, 503);
+    console.error('Clinic notification could not be confirmed.');
+    return json({ error: 'We could not confirm whether the notification was accepted. Please contact the clinic before retrying.' }, 502);
   }
+}
 
-  let notificationStatus: 'disabled' | 'simulated' | 'failed' = 'failed';
-  try {
-    notificationStatus = await notifyClinic({ reference, destination: clinicNumber }, env);
-  } catch {
-    console.error('Clinic notification failed.');
-  }
-  let recordedStatus: string = notificationStatus;
-  try {
-    const result = await env.DB.prepare('UPDATE appointment_enquiries SET notification_status = ? WHERE id = ?')
-      .bind(notificationStatus, reference).run();
-    if (!result.success) throw new Error('Update failed');
-  } catch {
-    console.error('Unable to update enquiry notification status.');
-    recordedStatus = 'pending';
-  }
-  return json({ reference, notificationStatus: recordedStatus }, 201);
+export function onRequest(context: Context): Promise<Response> {
+  return handleEnquiry(context, notifyClinic);
 }

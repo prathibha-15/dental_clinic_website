@@ -1,31 +1,23 @@
+export interface EnquiryNotification {
+  patientName: string;
+  mobile: string;
+  treatment: string;
+  preferredDate: string;
+  preferredTime: string;
+  message: string;
+}
+
 export interface SmsConfiguration {
-  SMS_MODE?: string;
   SMS_API_KEY?: string;
   SMS_API_SECRET?: string;
 }
 
-export type NotificationStatus = 'disabled' | 'simulated' | 'failed';
+export type SmsResult = 'accepted' | 'rejected' | 'unavailable' | 'unknown';
+export type SmsSender = (notification: EnquiryNotification, config: SmsConfiguration) => Promise<SmsResult>;
 
-export interface ClinicNotification {
-  reference: string;
-  destination: string;
-}
+export const CLINIC_SMS_DESTINATION = '+919488417158';
 
-export async function notifyClinic(
-  notification: ClinicNotification,
-  config: SmsConfiguration,
-): Promise<NotificationStatus> {
-  switch (config.SMS_MODE || 'disabled') {
-    case 'disabled':
-      return 'disabled';
-    case 'mock':
-      return 'simulated';
-    case 'mock_failure':
-      return 'failed';
-    default:
-      // Real providers must be integrated here with server-side credentials and
-      // a verified delivery receipt before recording a delivered status.
-      console.error('SMS provider is not configured.');
-      return 'failed';
-  }
-}
+export const notifyClinic: SmsSender = async (_notification, _config) => {
+  // Implement the selected provider here; return accepted only after its API confirms acceptance.
+  return 'unavailable';
+};

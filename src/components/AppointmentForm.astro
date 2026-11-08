@@ -10,7 +10,7 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       <h2 id="appointment-title">Let's take care of <em>your smile.</em></h2>
       <p>Share your details and our clinic will get in touch to arrange a suitable time for your visit.</p>
       <div class="appointment__availability">
-        <strong>Prefer to contact us directly?</strong>
+        <strong>Online requests are currently unavailable.</strong>
         <p><a href="tel:+919488417158">Call 9488417158</a> or <a href="https://wa.me/919488417158" target="_blank" rel="noopener noreferrer">send us a WhatsApp message (opens in a new tab)</a>.</p>
       </div>
     </div>
@@ -192,10 +192,10 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
         });
         const result: unknown = await response.json();
         if (!result || typeof result !== 'object') throw new Error('Invalid response');
-        const data = result as { reference?: unknown; notificationStatus?: unknown; fields?: Record<string, unknown> };
-        if (response.status === 201 && typeof data.reference === 'string') {
+        const data = result as { accepted?: unknown; fields?: Record<string, unknown> };
+        if (response.status === 200 && data.accepted === true) {
           form.reset();
-          status.textContent = `Your enquiry was saved. Reference: ${data.reference}. The clinic has not been automatically notified; please call or WhatsApp to arrange your visit.`;
+          status.textContent = 'Your enquiry was accepted for SMS notification. Please note that this does not confirm an appointment.';
         } else {
           let firstInvalid: HTMLElement | undefined;
           if (data.fields && typeof data.fields === 'object') {
@@ -210,12 +210,12 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
             }
           }
           status.textContent = response.status >= 500
-            ? 'The request could not be confirmed. Please call or WhatsApp before trying again.'
-            : 'Your request was not saved. Please correct any errors and try again, or call or WhatsApp the clinic.';
+            ? 'The notification could not be confirmed. Please call or WhatsApp before trying again.'
+            : 'Your enquiry was not sent. Please correct any errors and try again, or call or WhatsApp the clinic.';
           firstInvalid?.focus();
         }
       } catch {
-        status.textContent = 'We could not confirm whether your request was saved. Please call or WhatsApp the clinic before trying again.';
+        status.textContent = 'We could not confirm whether your notification was accepted. Please call or WhatsApp the clinic before trying again.';
       } finally {
         token = '';
         window.turnstile.reset(widgetId);

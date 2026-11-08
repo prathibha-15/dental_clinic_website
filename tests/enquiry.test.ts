@@ -1,23 +1,12 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
-import { onRequest } from '../functions/api/enquiry.ts';
+import { handleEnquiry, onRequest } from '../functions/api/enquiry.ts';
+import { CLINIC_SMS_DESTINATION, type EnquiryNotification, type SmsSender } from '../functions/lib/sms.ts';
 
-const db = new DatabaseSync(':memory:');
-db.exec(readFileSync(new URL('../migrations/0001_appointment_enquiries.sql', import.meta.url), 'utf8'));
-const binding = {
-  prepare(query: string) {
-    return {
-      bind(...values: (string | number | null)[]) {
-        return { async run() { db.prepare(query).run(...values); return { success: true }; } };
-      },
-    };
-  },
-};
 const originalFetch = globalThis.fetch;
-globalThis.fetch = async () => Response.json({ success: true, hostname: 'clinic.example', action: 'appointment' });
-after(() => { globalThis.fetch = originalFetch; db.close(); });
+const verifySuccess = () => { globalThis.fetch = async () => Response.json({ success: true, hostname: 'clinic.example', action: 'appointment' }); };
+verifySuccess();
+after(() => { globalThis.fetch = originalFetch; });
 
 const valid = {
   patientName: 'Test Patient',
@@ -29,23 +18,26 @@ const valid = {
   consent: true,
   turnstileToken: 'test-token',
 };
-const env = { DB: binding, TURNSTILE_SECRET_KEY: 'test-secret', SMS_MODE: 'mock' };
+const env = { TURNSTILE_SECRET_KEY: 'test-secret' };
 const request = (body: string, method = 'POST') => new Request('https://clinic.example/api/enquiry', {
   method,
   headers: { 'Content-Type': 'application/json' },
   ...(method === 'POST' ? { body } : {}),
 });
+const accepted: SmsSender = async () => 'accepted';
+const call = (body: unknown, sender: SmsSender = accepted) =>
+  handleEnquiry({ request: request(JSON.stringify(body)), env }, sender);
 
-test('valid enquiry is saved with a unique reference and simulated notification', async () => {
-  const response = await onRequest({ request: request(JSON.stringify(valid)), env });
-  assert.equal(response.status, 201);
-  const data = await response.json();
-  assert.match(data.reference, /^[0-9a-f-]{36}$/);
-  assert.equal(data.notificationStatus, 'simulated');
-  const row = db.prepare('SELECT * FROM appointment_enquiries WHERE id = ?').get(data.reference);
-  assert.equal(row?.patient_name, valid.patientName);
-  assert.equal(row?.notification_status, 'simulated');
-  assert.equal(row?.consent, 1);
+test('accepted SMS results in success and forwards the validated details', async () => {
+  let notification: EnquiryNotification | undefined;
+  const response = await call(valid, async (details) => { notification = details; return 'accepted'; });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { accepted: true });
+  assert.deepEqual(notification, {
+    patientName: 'Test Patient', mobile: '9876543210', treatment: 'Dental consultation',
+    preferredDate: '2027-01-15', preferredTime: 'Morning', message: 'Please call after 10.',
+  });
+  assert.equal(CLINIC_SMS_DESTINATION, '+919488417158');
 });
 
 for (const [label, change, key] of [
@@ -56,89 +48,74 @@ for (const [label, change, key] of [
   ['invalid date', { preferredDate: '2027-02-30' }, 'preferredDate'],
   ['invalid time', { preferredTime: 'Midnight' }, 'preferredTime'],
   ['message too long', { message: 'a'.repeat(501) }, 'message'],
+  ['missing Turnstile token', { turnstileToken: '' }, 'turnstile'],
 ] as const) {
   test(label, async () => {
-    const response = await onRequest({ request: request(JSON.stringify({ ...valid, ...change })), env });
+    let called = false;
+    const response = await call({ ...valid, ...change }, async () => { called = true; return 'accepted'; });
     assert.equal(response.status, 400);
-    const data = await response.json();
-    assert.ok(data.fields[key]);
+    assert.ok((await response.json()).fields[key]);
+    assert.equal(called, false);
   });
 }
 
-test('malformed JSON and non-POST requests are rejected', async () => {
-  assert.equal((await onRequest({ request: request('{'), env })).status, 400);
-  const response = await onRequest({ request: request('', 'GET'), env });
-  assert.equal(response.status, 405);
-  assert.equal(response.headers.get('Allow'), 'POST');
+test('malformed JSON, oversized bodies, non-POST and cross-origin requests are rejected', async () => {
+  assert.equal((await handleEnquiry({ request: request('{'), env }, accepted)).status, 400);
+  assert.equal((await handleEnquiry({ request: request('', 'GET'), env }, accepted)).status, 405);
+  assert.equal((await call({ ...valid, message: 'a'.repeat(9000) })).status, 413);
+  const crossOrigin = new Request('https://clinic.example/api/enquiry', {
+    method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://other.example' }, body: JSON.stringify(valid),
+  });
+  assert.equal((await handleEnquiry({ request: crossOrigin, env }, accepted)).status, 403);
 });
 
-test('SMS failure keeps the enquiry and records failure', async () => {
-  const response = await onRequest({ request: request(JSON.stringify(valid)), env: { ...env, SMS_MODE: 'mock_failure' } });
-  assert.equal(response.status, 201);
-  const result = await response.json();
-  assert.equal(result.notificationStatus, 'failed');
-  assert.equal(db.prepare('SELECT notification_status FROM appointment_enquiries WHERE id = ?').get(result.reference)?.notification_status, 'failed');
+test('message control characters are removed before forwarding', async () => {
+  let actual = '';
+  const response = await call({ ...valid, message: 'hello\u0001world' }, async (details) => { actual = details.message; return 'accepted'; });
+  assert.equal(response.status, 200);
+  assert.equal(actual, 'helloworld');
 });
 
-test('notification status update failure leaves a saved enquiry pending', async () => {
-  const failingUpdate = {
-    prepare(query: string) {
-      if (query.startsWith('UPDATE')) return { bind: () => ({ async run() { throw new Error('test failure'); } }) };
-      return binding.prepare(query);
-    },
-  };
-  const response = await onRequest({ request: request(JSON.stringify(valid)), env: { ...env, DB: failingUpdate } });
-  assert.equal(response.status, 201);
-  const result = await response.json();
-  assert.equal(result.notificationStatus, 'pending');
-  assert.equal(db.prepare('SELECT notification_status FROM appointment_enquiries WHERE id = ?').get(result.reference)?.notification_status, 'pending');
+for (const [result, status] of [['rejected', 502], ['unknown', 502], ['unavailable', 503]] as const) {
+  test(`SMS ${result} is not successful`, async () => {
+    const response = await call(valid, async () => result);
+    assert.equal(response.status, status);
+    assert.notEqual((await response.json()).accepted, true);
+  });
+}
+
+test('provider exception does not report success', async () => {
+  const response = await call(valid, async () => { throw new Error('provider error'); });
+  assert.equal(response.status, 502);
+  assert.match((await response.json()).error, /could not confirm/i);
 });
 
-test('database insertion failure does not report success', async () => {
-  const brokenDb = { prepare() { return { bind() { return { async run() { throw new Error('test failure'); } }; } }; } };
-  const response = await onRequest({ request: request(JSON.stringify(valid)), env: { ...env, DB: brokenDb } });
+test('production adapter without provider fails closed', async () => {
+  const response = await onRequest({ request: request(JSON.stringify(valid)), env });
   assert.equal(response.status, 503);
+  assert.notEqual((await response.json()).accepted, true);
 });
 
-test('spam verification failure rejects without inserting', async () => {
-  const count = db.prepare('SELECT count(*) AS count FROM appointment_enquiries').get()?.count;
-  globalThis.fetch = async () => Response.json({ success: false });
-  try {
-    const response = await onRequest({ request: request(JSON.stringify(valid)), env });
-    assert.equal(response.status, 403);
-    assert.equal(db.prepare('SELECT count(*) AS count FROM appointment_enquiries').get()?.count, count);
-  } finally {
-    globalThis.fetch = async () => Response.json({ success: true, hostname: 'clinic.example', action: 'appointment' });
-  }
-});
-
-test('verification rejects wrong hostname and action', async () => {
+test('failed or mismatched Turnstile never invokes the SMS provider', async () => {
   try {
     for (const result of [
+      { success: false },
       { success: true, hostname: 'other.example', action: 'appointment' },
       { success: true, hostname: 'clinic.example', action: 'other' },
     ]) {
       globalThis.fetch = async () => Response.json(result);
-      assert.equal((await onRequest({ request: request(JSON.stringify(valid)), env })).status, 403);
+      let called = false;
+      const response = await call(valid, async () => { called = true; return 'accepted'; });
+      assert.equal(response.status, 403);
+      assert.equal(called, false);
     }
-  } finally {
-    globalThis.fetch = async () => Response.json({ success: true, hostname: 'clinic.example', action: 'appointment' });
-  }
+  } finally { verifySuccess(); }
 });
 
-test('missing configuration fails closed', async () => {
-  const response = await onRequest({ request: request(JSON.stringify(valid)), env: { ...env, TURNSTILE_SECRET_KEY: '' } });
-  assert.equal(response.status, 503);
-});
-
-test('oversized payloads are rejected', async () => {
-  const response = await onRequest({ request: request(JSON.stringify({ ...valid, message: 'a'.repeat(9000) })), env });
-  assert.equal(response.status, 413);
-});
-
-test('message control characters are removed before storing', async () => {
-  const response = await onRequest({ request: request(JSON.stringify({ ...valid, message: 'hello\u0001world' })), env });
-  assert.equal(response.status, 201);
-  const data = await response.json();
-  assert.equal(db.prepare('SELECT additional_message FROM appointment_enquiries WHERE id = ?').get(data.reference)?.additional_message, 'helloworld');
+test('Turnstile outage and missing secret fail closed', async () => {
+  try {
+    globalThis.fetch = async () => { throw new Error('network error'); };
+    assert.equal((await call(valid)).status, 503);
+    assert.equal((await handleEnquiry({ request: request(JSON.stringify(valid)), env: {} }, accepted)).status, 503);
+  } finally { verifySuccess(); }
 });

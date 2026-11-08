@@ -1,45 +1,37 @@
 # Sudharsan Dental Clinic
 
-Astro renders the website as static files. Cloudflare Pages Functions handle `POST /api/enquiry`; Cloudflare D1 stores enquiries. Astro's standalone dev server and preview do **not** run Pages Functions.
+Astro produces the static site. Cloudflare Pages Functions handle `POST /api/enquiry`; the application does not store enquiries or patient records. The API validates the form, verifies Turnstile and calls the SMS adapter. There is no dashboard or enquiry retrieval endpoint.
 
-## Prerequisites
+**Online enquiries are not ready for use:** no SMS provider has been chosen or implemented. The current adapter always returns unavailable, so no successful response or SMS is produced. Patients should call or WhatsApp the clinic. Choose a provider and implement its API before enabling the form.
 
-- Node.js 22.23.4 or newer and npm.
-- A Cloudflare account with Pages, D1 and Turnstile; Wrangler CLI (for example `npx wrangler`).
+## Local development
 
-Install dependencies with `npm install`. `npm run astro -- dev --background` serves the frontend at `http://localhost:4321/`, but not the API. Manage it with `npm run astro -- dev status`, `npm run astro -- dev logs`, and `npm run astro -- dev stop`.
+Use Node.js 22.23.4 or newer and `npm install`. `npm run astro -- dev --background` serves the frontend at `http://localhost:4321/`; manage it with `npm run astro -- dev status`, `npm run astro -- dev logs`, and `npm run astro -- dev stop`. Astro's dev server and preview do not run Pages Functions.
 
-## Cloudflare setup
+For the Pages Function, copy `.dev.vars.example` to `.dev.vars` for a **local-only** Turnstile test secret. Set `PUBLIC_TURNSTILE_SITE_KEY` to Cloudflare's test site key for the build:
 
-1. Create a D1 database with `npx wrangler d1 create sudharsan-enquiries`. Replace `REPLACE_WITH_D1_DATABASE_ID` in `wrangler.toml` with its ID. Create a **separate** preview database named `sudharsan-enquiries-preview`, and replace `REPLACE_WITH_PREVIEW_D1_DATABASE_ID` in the preview binding with its ID; never connect test traffic to production patient data. Wrangler configuration is the source of truth for Pages bindings: reconcile this file with any existing Pages project settings before deploying. Adjust the project name to match your Pages project.
-2. Run `npx wrangler d1 migrations apply sudharsan-enquiries --remote` before deploying. Apply preview migrations separately with `npx wrangler d1 migrations apply sudharsan-enquiries-preview --env preview --remote`. Do not commit generated database state.
-3. Create a Turnstile widget for the deployed hostname. Set `PUBLIC_TURNSTILE_SITE_KEY` as a **Pages build environment variable**; Astro embeds this public site key at build time. Add the matching `TURNSTILE_SECRET_KEY` as an encrypted Pages Function secret for each environment. Redeploy after setting these values. Configure allowed production and preview hostnames on the respective widgets. The endpoint checks the verified hostname and `appointment` action.
-4. Configure a Cloudflare WAF rate-limiting rule before enabling the endpoint: match `http.request.uri.path eq "/api/enquiry" and http.request.method eq "POST"`, count requests by client IP, and block or challenge excessive requests. Start with a conservative limit such as 5 requests per IP per 10 minutes where the plan supports it; otherwise use the closest available period/threshold and tune for shared networks. Use proxied custom domains where your WAF rule can be enforced. Protect preview deployments with Cloudflare Access, and do not enable Turnstile for unprotected alternative hostnames such as `pages.dev`; verify that no alternate hostname can bypass your rate limits. Turnstile is mandatory but does not replace edge rate limiting.
-5. Configure a Pages project to run `npm run build`, with output directory `dist`, and deploy the repository. Pages automatically discovers the root `functions/` directory. Serve only over HTTPS, and do not publish `.dev.vars`, local D1 files or secrets.
+```powershell
+$env:PUBLIC_TURNSTILE_SITE_KEY = '1x00000000000000000000AA'
+npm run build
+npx wrangler pages dev dist
+```
 
-The committed Wrangler database IDs are intentionally placeholders: deployment is not ready until both real IDs are supplied. No Cloudflare resources are created by this repository.
+Open the address printed by Wrangler. Use only synthetic data. The test secret's special `example.com` response is accepted only for `localhost` or `127.0.0.1`. The adapter still returns unavailable; automated tests inject a fake provider without enabling fake success on deployed endpoints. Remove the test build variable and rebuild before deploying.
 
-## Enquiry behaviour and SMS
+## Deployment and security
 
-The API validates all inputs and Turnstile server-side, inserts the enquiry, then records notification status. There is no public read API or admin dashboard. Patient details are not logged. The form only reports success after a `201` response and explicitly asks the patient to call or WhatsApp because no real notification provider is integrated. If the connection fails, the result may be unknown; contact the clinic before retrying to avoid duplicate enquiries.
+1. Reconcile `wrangler.toml` with any existing Pages project configuration; it becomes the configuration source of truth. Configure the build command as `npm run build`, output directory `dist`, and HTTPS. Pages discovers the root `functions/` directory.
+2. Create a Turnstile widget for the actual hostnames. Set its public `PUBLIC_TURNSTILE_SITE_KEY` as a Pages **build** variable and its matching `TURNSTILE_SECRET_KEY` as an encrypted Pages Function secret. Redeploy after changes. The endpoint checks the verified hostname and `appointment` action; it fails closed without the secret.
+3. Before enabling submissions, configure and verify a Cloudflare WAF rate-limiting rule matching `http.request.uri.path eq "/api/enquiry" and http.request.method eq "POST"`, counting by client IP and blocking excessive requests. Start at 5 requests per IP per 10 minutes where supported; otherwise choose the closest available threshold and tune for shared networks. Apply it on every public production and preview hostname; use proxied custom domains where the WAF is enforceable, protect previews with Cloudflare Access, and ensure alternative hostnames cannot bypass the rule. **This rule must be created in Cloudflare; it is not provisioned or verified by this repository.** Turnstile does not replace rate limiting.
+4. Configure the selected provider in `functions/lib/sms.ts` and store all provider credentials only as encrypted server-side Pages secrets. The notification must go to `CLINIC_SMS_DESTINATION` (`+919488417158`) and include the validated enquiry fields required for the clinic to respond. Implement the provider's actual authentication, sender/template and India-specific regulatory requirements. Return `accepted` only after a response explicitly confirms provider acceptance; this is **not** a delivery confirmation. Return `rejected` for definitive rejection, `unknown` for timeouts or ambiguous results, and `unavailable` for missing configuration. Do not log request content, credentials, or provider responses containing personal information. Remove the form's unavailable notice only after the provider is configured and tested.
+5. Test using synthetic data, confirm an actual notification reaches the intended clinic number, and verify WAF and Turnstile protection on deployed hostnames. Complete privacy and consent review, including the SMS provider's processing and retention, before accepting real enquiries. SMS may contain personal data, treatment and the optional message; patients are reminded not to enter sensitive medical information. No application database is created.
 
-| Server environment variable | Purpose |
-| --- | --- |
-| `TURNSTILE_SECRET_KEY` | Required encrypted Turnstile secret. Never expose in frontend code. |
-| `SMS_MODE` | `disabled` (default), `mock` (records `simulated`), or `mock_failure` (records `failed`). Unknown values record `failed`. |
-| `SMS_API_KEY`, `SMS_API_SECRET` | Reserved encrypted server-side credentials for a future provider adapter; currently unused. |
+Only a provider-confirmed acceptance yields a success response. Delivery is not guaranteed. If the connection or provider outcome is uncertain, the patient is told to call or WhatsApp before retrying to avoid duplicate notifications. Since no application record exists, unsuccessful or undelivered notifications cannot be recovered from the website.
 
-`functions/lib/sms.ts` is the isolated adapter boundary. The destination is the clinic number, `919488417158`. No live SMS is sent in any mode. Integrating a provider requires a provider-specific implementation, secret configuration, appropriate consent/privacy review, and verified delivery receipts before recording `sent`. A provider's acceptance alone is not delivery confirmation. A failed notification does not roll back an enquiry; a failed status update leaves `pending` for operational review.
+`TURNSTILE_SECRET_KEY` is the only currently used server secret. `SMS_API_KEY` and `SMS_API_SECRET` are reserved placeholders in the adapter's configuration type and are not used until a provider is integrated; use the actual provider-specific secret names as needed. Do not commit `.dev.vars` or expose credentials through `PUBLIC_` variables.
 
-**Operational requirement:** Until a secure, authenticated staff workflow and a real notification provider are in place, staff must monitor D1 through authorized Cloudflare tooling. Do not present this as a production-ready booking system. Restrict D1 access and logs, establish a retention/deletion policy for personal data, and publish an appropriate privacy policy before collecting real enquiries. The message field is limited to 500 characters and asks patients not to enter sensitive medical information; it cannot guarantee that they will not do so.
-
-## Local API development
-
-1. Replace the placeholder D1 database ID in `wrangler.toml` (a real database ID is required for deployment). Run `npx wrangler d1 migrations apply sudharsan-enquiries --local` to initialize the separate local database.
-2. Copy `.dev.vars.example` to `.dev.vars` for the **local test-only** Turnstile secret and mock SMS mode. Both `.dev.vars` and local D1 state are gitignored. Never use test keys in production.
-3. Set `PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA` for the build (in PowerShell: `$env:PUBLIC_TURNSTILE_SITE_KEY = '1x00000000000000000000AA'`). Run `npm run build`, then `npx wrangler pages dev dist`. Open the URL Wrangler prints. The test secret's special `example.com` response is accepted only when the request hostname is `localhost` or `127.0.0.1`. Rebuild without the test key before a production deployment.
-4. In the local D1 database, inspect only test data with `npx wrangler d1 execute sudharsan-enquiries --local --command "SELECT id, status, notification_status FROM appointment_enquiries"`. To exercise a notification failure, set `SMS_MODE="mock_failure"` in `.dev.vars` and restart Wrangler.
+If databases were created under the previous design, removing bindings and migration files does **not** delete them or their existing data. An authorized owner should assess retention and backups, and separately arrange deletion through Cloudflare if appropriate.
 
 ## Verification
 
-Run `npm run build`, `npx tsc --noEmit` and `node --test tests/enquiry.test.ts`. The tests use an in-memory SQLite database, a mocked Turnstile response and synthetic data; they cover valid submissions, missing name, invalid mobile, missing consent, unconfirmed treatment, malformed JSON, notification failure after insertion, and spam verification failure. They do not prove a real Cloudflare deployment, WAF rule, SMS delivery, or provider integration. After configuring Cloudflare, perform an end-to-end test with test data, inspect D1 using authorized tooling, and verify the WAF and Turnstile settings for each deployed hostname.
+Run `npx tsc --noEmit`, `node --test tests/enquiry.test.ts`, and `npm run build`. The tests use synthetic data and mocked Turnstile and SMS providers, covering validation, spam checks, accepted notifications, rejection, unavailable service and provider errors. They do not prove live delivery, production WAF configuration, or a real provider integration.
