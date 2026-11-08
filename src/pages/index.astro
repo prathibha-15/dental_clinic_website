@@ -1,16 +1,32 @@
 ---
+import About from '../components/About.astro';
+import AppointmentForm from '../components/AppointmentForm.astro';
+import Contact from '../components/Contact.astro';
+import Dentists from '../components/Dentists.astro';
+import Footer from '../components/Footer.astro';
+import Gallery from '../components/Gallery.astro';
+import Hero from '../components/Hero.astro';
+import Navbar from '../components/Navbar.astro';
+import Services from '../components/Services.astro';
+import TrustSection from '../components/TrustSection.astro';
+import MainLayout from '../layouts/MainLayout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<MainLayout
+  title="Sudharsan Dental Clinic | Dental care in Krishnagiri"
+  description="Sudharsan Dental Clinic has provided dental care in Krishnagiri since 1994."
+>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <Navbar />
+  <main id="main-content">
+    <Hero />
+    <TrustSection />
+    <About />
+    <Dentists />
+    <Services />
+    <Gallery />
+    <AppointmentForm />
+    <Contact />
+  </main>
+  <Footer />
+</MainLayout>

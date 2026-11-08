@@ -1,0 +1,48 @@
+---
+const values = ['Honest guidance', 'Thoughtful patient care', 'Clear communication', 'Reasonable pricing', 'A welcoming clinic environment'];
+---
+
+<section id="about" class="about" aria-labelledby="about-title">
+  <div class="container about__inner">
+    <div class="about__visual">
+      <!-- Replace this placeholder with an approved photograph of the clinic and descriptive alt text. -->
+      <div class="about__placeholder">
+        <span class="about__placeholder-mark" aria-hidden="true">S<span> / </span>D</span>
+        <p>Clinic photograph coming soon</p>
+      </div>
+      <p class="about__caption">SUDHARSAN DENTAL CLINIC <span>·</span> KRISHNAGIRI</p>
+    </div>
+    <div class="about__copy">
+      <p class="eyebrow"><span aria-hidden="true"></span> GET TO KNOW US</p>
+      <h2 id="about-title">Care built on <em>trust.</em></h2>
+      <p class="about__description">Since 1994, Sudharsan Dental Clinic has been serving patients in Krishnagiri. We believe that good dental care begins with listening to patients, understanding their concerns and explaining suitable treatment options.</p>
+      <ul class="about__values">
+        {values.map((value) => <li><span aria-hidden="true">✳</span>{value}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about { padding-block: clamp(5rem, 9vw, 9rem); background: var(--color-ivory); }
+  .about__inner { display: grid; grid-template-columns: 0.95fr 1fr; gap: clamp(3rem, 8vw, 8rem); align-items: center; }
+  .about__visual { position: relative; }
+  .about__placeholder { display: flex; width: 100%; min-height: 27rem; aspect-ratio: 1.05 / 1; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; background: var(--color-sage); border: 1px solid #c9d6c5; text-align: center; }
+  .about__placeholder-mark { font-family: var(--font-heading); font-size: clamp(3rem, 6vw, 5rem); color: var(--color-forest); }
+  .about__placeholder-mark span { color: var(--color-beige); font-size: 0.5em; }
+  .about__placeholder p { color: #536b51; font-size: 0.75rem; font-weight: 600; }
+  .about__caption { margin-top: 0.9rem; color: #677368; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.12em; }
+  .about__caption span { color: var(--color-beige); }
+  h2 { margin-top: 1.3rem; font-size: clamp(3rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -0.04em; }
+  h2 em { color: var(--color-forest); }
+  .about__description { max-width: 36rem; margin-top: 1.75rem; color: #59635a; font-size: 1rem; line-height: 1.9; }
+  .about__values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; margin: 2.25rem 0 0; padding: 1.75rem 0 0; border-top: 1px solid #d5ddd1; list-style: none; }
+  .about__values li { display: flex; gap: 0.75rem; font-size: 0.85rem; font-weight: 600; line-height: 1.5; }
+  .about__values li span { color: var(--color-beige); }
+  @media (max-width: 800px) {
+    .about__inner { grid-template-columns: minmax(0, 1fr); }
+    .about__copy { order: -1; }
+    .about__placeholder { min-height: 18rem; aspect-ratio: 1.4 / 1; }
+  }
+  @media (max-width: 450px) { .about__values { grid-template-columns: 1fr; } }
+</style>

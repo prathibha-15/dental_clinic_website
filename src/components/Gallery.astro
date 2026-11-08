@@ -1,0 +1,51 @@
+---
+const photographs = ['Clinic exterior', 'Reception area', 'Waiting area', 'Dental treatment room', 'Dental equipment', 'Clinic environment'];
+---
+
+<section id="gallery" class="gallery" aria-labelledby="gallery-title">
+  <div class="container">
+    <div class="gallery__intro">
+      <div>
+        <p class="eyebrow"><span aria-hidden="true"></span> OUR SPACE</p>
+        <h2 id="gallery-title">A closer look at <em>our clinic.</em></h2>
+      </div>
+      <p>Take a look at the space where we welcome and care for our patients.</p>
+    </div>
+    <p class="gallery__notice">Clinic photographs are coming soon. The panels below are placeholders.</p>
+    <div class="gallery__grid">
+      {photographs.map((photograph, index) => (
+        <figure class:list={['gallery__item', { 'gallery__item--featured': index === 0 }]}>
+          <!-- Replace each placeholder with an approved clinic photograph and descriptive alt text. -->
+          <div class="gallery__placeholder" role="img" aria-label={`Placeholder for ${photograph.toLowerCase()} photograph`}>
+            <span class="gallery__number" aria-hidden="true">0{index + 1} /</span>
+            <span class="gallery__symbol" aria-hidden="true">✳</span>
+            <span class="gallery__placeholder-label">Photograph coming soon</span>
+          </div>
+          <figcaption>{photograph}</figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .gallery { padding-block: clamp(5rem, 9vw, 9rem); background: var(--color-white); }
+  .gallery__intro { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
+  h2 { margin-top: 1.25rem; font-size: clamp(2.7rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -0.04em; }
+  h2 em { color: var(--color-forest); }
+  .gallery__intro > p { max-width: 24rem; color: #59635a; font-size: 0.95rem; line-height: 1.8; }
+  .gallery__notice { margin-top: 2.5rem; color: #59635a; font-size: 0.8rem; }
+  .gallery__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem; margin-top: 1.25rem; }
+  .gallery__item { min-width: 0; margin: 0; }
+  .gallery__item--featured { grid-column: span 2; grid-row: span 2; }
+  .gallery__placeholder { display: flex; width: 100%; aspect-ratio: 1.35 / 1; position: relative; align-items: center; justify-content: center; flex-direction: column; gap: 0.5rem; overflow: hidden; border-radius: 2px; background: #e8eee4; color: var(--color-forest); transition: background-color 180ms ease; }
+  .gallery__item--featured .gallery__placeholder { aspect-ratio: auto; height: calc(100% - 2rem); min-height: 20rem; background: var(--color-sage); }
+  .gallery__item:nth-child(3n) .gallery__placeholder { background: #f0ede5; }
+  .gallery__item:hover .gallery__placeholder { background: #d3dfce; }
+  .gallery__number { position: absolute; top: 1rem; left: 1rem; color: #667b63; font-size: 0.7rem; font-weight: 700; }
+  .gallery__symbol { color: var(--color-beige); font-size: 2rem; }
+  .gallery__placeholder-label { font-size: 0.73rem; font-weight: 600; }
+  figcaption { padding-top: 0.75rem; font-size: 0.82rem; font-weight: 600; }
+  @media (max-width: 800px) { .gallery__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gallery__item--featured { grid-row: auto; } .gallery__item--featured .gallery__placeholder { height: auto; aspect-ratio: 2 / 1; min-height: 0; } }
+  @media (max-width: 600px) { .gallery__intro { align-items: start; flex-direction: column; } .gallery__grid { gap: 1rem; } }
+</style>

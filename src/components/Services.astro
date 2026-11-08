@@ -1,0 +1,55 @@
+---
+import CareIcon from './CareIcon.astro';
+import { categories } from '../data/services';
+---
+
+<section id="treatments" class="services" aria-labelledby="services-title">
+  <div class="container">
+    <div class="services__intro">
+      <div>
+        <p class="eyebrow"><span aria-hidden="true"></span> CARE FOR YOUR NEEDS</p>
+        <h2 id="services-title">Comprehensive <em>dental care.</em></h2>
+      </div>
+      <p>Explore the treatments available and discuss the options that are right for you with a dentist.</p>
+    </div>
+    <div class="services__grid">
+      {categories.map((category) => (
+        <article class="service-card">
+          <span class="service-card__icon"><CareIcon name={category.icon} /></span>
+          <h3>{category.title}</h3>
+          <p>{category.description}</p>
+          <ul>
+            {category.treatments.map((treatment) => <li>{treatment}</li>)}
+          </ul>
+        </article>
+      ))}
+    </div>
+    <p class="services__disclaimer">Treatment suitability is determined by a dentist after consultation.</p>
+  </div>
+</section>
+
+<style>
+  .services { padding-block: clamp(5rem, 9vw, 9rem); background: var(--color-ivory); }
+  .services__intro { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
+  h2 { max-width: 14ch; margin-top: 1.25rem; font-size: clamp(3rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -0.04em; }
+  h2 em { color: var(--color-forest); }
+  .services__intro > p { max-width: 25rem; color: #59635a; font-size: 0.95rem; line-height: 1.8; }
+  .services__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 3.5rem; border: 1px solid #dce5d7; background: #dce5d7; }
+  .service-card { padding: clamp(1.5rem, 2.5vw, 2.5rem); background: var(--color-white); }
+  .service-card__icon { display: flex; width: 3rem; height: 3rem; align-items: center; justify-content: center; background: #edf2e9; color: var(--color-forest); }
+  .service-card__icon :global(svg) { width: 1.5rem; height: 1.5rem; }
+  h3 { margin-top: 1.5rem; font-size: 1.65rem; line-height: 1.2; }
+  .service-card > p { min-height: 3.2em; margin-top: 0.75rem; color: #59635a; font-size: 0.85rem; line-height: 1.6; }
+  .service-card ul { display: grid; gap: 0.6rem; margin: 1.5rem 0 0; padding: 1.25rem 0 0; border-top: 1px solid #e4e9e1; list-style: none; }
+  .service-card li { display: flex; gap: 0.65rem; color: #485248; font-size: 0.83rem; line-height: 1.5; }
+  .service-card li::before { content: '—'; color: var(--color-beige); }
+  .services__disclaimer { margin-top: 1.75rem; color: #59635a; font-size: 0.8rem; line-height: 1.7; }
+  @media (max-width: 950px) { .services__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) {
+    .services__intro { align-items: start; flex-direction: column; }
+    .services__intro > div { min-width: 0; }
+    h2 { font-size: clamp(2.2rem, 10vw, 3rem); overflow-wrap: anywhere; }
+    .services__grid { grid-template-columns: 1fr; }
+    .service-card > p { min-height: 0; }
+  }
+</style>

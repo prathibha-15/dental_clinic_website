@@ -1,0 +1,51 @@
+---
+import CareIcon from './CareIcon.astro';
+
+const highlights = [
+  { icon: 'calendar', title: 'Established in 1994' },
+  { icon: 'people', title: 'Two BDS-qualified dentists' },
+  { icon: 'heart', title: 'Patient-focused dental care' },
+  { icon: 'balance', title: 'Reasonable and transparent approach to pricing' },
+] as const;
+---
+
+<section class="trust-section" aria-labelledby="trust-title">
+  <div class="container">
+    <div class="trust-intro">
+      <div>
+        <p class="eyebrow"><span aria-hidden="true"></span> OUR APPROACH</p>
+        <h2 id="trust-title">Honest guidance. Thoughtful care. <em>Fair and reasonable pricing.</em></h2>
+      </div>
+      <p>At Sudharsan Dental Clinic, we believe in providing thoughtful dental care, explaining treatment options clearly and recommending treatments based on each patient's needs.</p>
+    </div>
+    <ul class="trust-grid">
+      {highlights.map((highlight) => (
+        <li>
+          <span class="trust-icon"><CareIcon name={highlight.icon} /></span>
+          <p>{highlight.title}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .trust-section { padding-block: clamp(5rem, 8vw, 8rem); background: var(--color-white); }
+  .trust-intro { display: grid; grid-template-columns: 1.15fr 0.6fr; align-items: end; gap: 3rem; }
+  h2 { max-width: 20ch; margin-top: 1.25rem; font-size: clamp(2.4rem, 4vw, 4.2rem); line-height: 1.12; letter-spacing: -0.035em; }
+  h2 em { color: var(--color-forest); }
+  .trust-intro > p { max-width: 30rem; color: #59635a; font-size: 0.95rem; line-height: 1.85; }
+  .trust-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin: 3.5rem 0 0; padding: 1px; list-style: none; background: #dce5d7; }
+  .trust-grid li { min-height: 11rem; padding: 1.75rem; background: #f7f9f5; }
+  .trust-icon { display: block; width: 2rem; height: 2rem; color: var(--color-forest); }
+  .trust-icon :global(svg) { width: 100%; height: 100%; }
+  .trust-grid p { max-width: 15rem; margin-top: 1.5rem; font-size: 0.9rem; font-weight: 600; line-height: 1.5; }
+  @media (max-width: 800px) {
+    .trust-intro { grid-template-columns: 1fr; gap: 1.5rem; }
+    .trust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 450px) {
+    .trust-grid li { min-height: 10rem; padding: 1.25rem; }
+    .trust-grid p { font-size: 0.8rem; }
+  }
+</style>

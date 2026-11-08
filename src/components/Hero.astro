@@ -1,0 +1,165 @@
+---
+const indicators = [
+  { number: '01', text: 'Established in 1994' },
+  { number: '02', text: 'Two BDS-qualified dentists' },
+  { number: '03', text: 'Multiple dental treatments' },
+];
+---
+
+<section id="home" class="hero" aria-labelledby="hero-title">
+  <div class="container hero__inner">
+    <div class="hero__copy">
+      <p class="eyebrow"><span aria-hidden="true"></span> ESTABLISHED 1994 · KRISHNAGIRI</p>
+      <h1 id="hero-title">Care that puts your <em>smile first.</em></h1>
+      <p class="hero__description">
+        At Sudharsan Dental Clinic, we have been providing dental care in Krishnagiri since 1994. Our dentists focus on patient comfort, clear communication and appropriate treatment.
+      </p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#appointment">Request an Appointment <span aria-hidden="true">↗</span></a>
+        <a class="button button--secondary" href="#treatments">Explore Treatments <span aria-hidden="true">↗</span></a>
+      </div>
+      <p class="hero__note">Thoughtful care, for every smile.</p>
+    </div>
+
+    <div class="hero__visual">
+      <div class="hero__image-frame">
+        <div class="hero__image-fallback" aria-hidden="true">
+          <span>Care begins<br />with comfort.</span>
+        </div>
+        <img
+          class="hero__image"
+          src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&amp;fit=crop&amp;w=1200&amp;q=85"
+          alt="Illustrative stock photograph of a dental treatment room"
+          width="1200"
+          height="1500"
+          fetchpriority="high"
+        />
+      </div>
+      <p class="hero__image-caption">A little more care, a lot more smile. <span>Illustrative photo, not our clinic</span></p>
+      <div class="hero__visual-label" aria-hidden="true">
+        <span>ROOTED IN</span>
+        <strong>care.</strong>
+        <span>SINCE 1994</span>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="hero__trust" aria-label="Clinic highlights">
+      <p class="hero__trust-label">A PRACTICE BUILT<br /><span>AROUND YOU</span></p>
+      {indicators.map((indicator) => (
+        <div class="hero__trust-item">
+          <span>{indicator.number} /</span>
+          <p>{indicator.text}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  const image = document.querySelector<HTMLImageElement>('.hero__image');
+  const showFallback = () => {
+    if (image) image.hidden = true;
+  };
+  image?.addEventListener('error', showFallback);
+  if (image?.complete && image.naturalWidth === 0) showFallback();
+</script>
+
+<style>
+  .hero { overflow: hidden; background: var(--color-ivory); }
+  .hero__inner {
+    display: grid;
+    grid-template-columns: 1fr 0.92fr;
+    align-items: center;
+    gap: clamp(3rem, 8vw, 9rem);
+    padding-block: clamp(4rem, 7vw, 7.5rem);
+  }
+  .hero__copy { max-width: 43rem; }
+  .hero h1 {
+    max-width: 10ch;
+    margin-top: 2rem;
+    font-size: clamp(4rem, 6.7vw, 7.2rem);
+    line-height: 0.99;
+    letter-spacing: -0.055em;
+  }
+  .hero h1 em { color: var(--color-forest); }
+  .hero__description {
+    max-width: 33rem;
+    margin-top: 2rem;
+    color: #59635a;
+    font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+    line-height: 1.9;
+  }
+  .hero__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2.25rem; }
+  .hero__note { margin-top: 2.5rem; color: #677368; font-size: 0.72rem; }
+  .hero__note::before { content: ''; display: inline-block; width: 1.5rem; height: 1px; margin: 0 0.65rem 0.2rem 0; background: var(--color-beige); }
+  .hero__visual { position: relative; }
+  .hero__visual::before {
+    position: absolute;
+    z-index: 0;
+    top: -1.5rem;
+    right: -1.5rem;
+    width: 70%;
+    height: 75%;
+    background: var(--color-sage);
+    content: '';
+  }
+  .hero__image-frame { position: relative; aspect-ratio: 1 / 1.08; overflow: hidden; background: var(--color-sage); }
+  .hero__image-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    color: var(--color-forest);
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-style: italic;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .hero__image { position: relative; width: 100%; height: 100%; object-fit: cover; }
+  .hero__image[hidden] { display: none; }
+  .hero__image-caption { position: relative; display: flex; justify-content: space-between; gap: 1rem; padding-top: 0.8rem; color: #677368; font-size: 0.65rem; }
+  .hero__image-caption span { white-space: nowrap; }
+  .hero__visual-label {
+    position: absolute;
+    bottom: 3.5rem;
+    left: -2rem;
+    display: flex;
+    width: 7rem;
+    height: 7rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-forest);
+    color: var(--color-white);
+    box-shadow: 0 12px 30px rgba(48, 54, 48, 0.15);
+  }
+  .hero__visual-label span { font-size: 0.48rem; font-weight: 700; letter-spacing: 0.14em; }
+  .hero__visual-label strong { margin-block: 0.1rem; font-family: var(--font-heading); font-size: 2rem; font-style: italic; font-weight: 400; }
+  .hero__trust { display: grid; grid-template-columns: 1.1fr repeat(3, 1fr); border-top: 1px solid #d8ded4; }
+  .hero__trust-label, .hero__trust-item { padding: 1.8rem 1.5rem 1.8rem 0; }
+  .hero__trust-label { color: var(--color-forest); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; line-height: 1.8; }
+  .hero__trust-label span { color: #7a8479; }
+  .hero__trust-item { display: flex; align-items: center; gap: 1rem; border-left: 1px solid #d8ded4; padding-left: 1.8rem; }
+  .hero__trust-item > span { color: var(--color-beige); font-size: 0.68rem; font-weight: 700; }
+  .hero__trust-item p { font-size: 0.8rem; font-weight: 600; line-height: 1.5; }
+  @media (max-width: 800px) {
+    .hero__inner { grid-template-columns: 1fr; gap: 3.5rem; }
+    .hero__copy { max-width: 40rem; }
+    .hero__visual { margin-right: 1.5rem; margin-left: 1rem; }
+    .hero__image-frame { aspect-ratio: 1.35 / 1; }
+    .hero__trust { grid-template-columns: repeat(2, 1fr); }
+    .hero__trust-label, .hero__trust-item { padding: 1.25rem; border-bottom: 1px solid #d8ded4; }
+    .hero__trust-item:nth-child(3) { border-left: 0; }
+  }
+  @media (max-width: 500px) {
+    .hero h1 { font-size: clamp(3.5rem, 14vw, 4.6rem); }
+    .hero__actions { align-items: stretch; flex-direction: column; }
+    .hero__visual-label { width: 5.5rem; height: 5.5rem; left: -1rem; bottom: 3rem; }
+    .hero__visual-label strong { font-size: 1.6rem; }
+    .hero__trust-item { gap: 0.6rem; }
+    .hero__trust-item p { font-size: 0.73rem; }
+  }
+</style>

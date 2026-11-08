@@ -1,0 +1,60 @@
+---
+const dentists = [
+  { name: 'Muniraj B', qualification: 'BDS' },
+  { name: 'Hemalatha J', qualification: 'BDS' },
+];
+---
+
+<section id="dentists" class="dentists" aria-labelledby="dentists-title">
+  <div class="container">
+    <div class="dentists__intro">
+      <div>
+        <p class="eyebrow"><span aria-hidden="true"></span> THE PEOPLE BEHIND THE CARE</p>
+        <h2 id="dentists-title">Meet our <em>dentists.</em></h2>
+      </div>
+      <p>Our clinic communicates in Tamil, English, Hindi and Telugu.</p>
+    </div>
+    <div class="dentists__grid">
+      {dentists.map((dentist) => (
+        <article class="dentist-card">
+          <!-- Replace this placeholder with the dentist's approved photograph and descriptive alt text. -->
+          <div class="dentist-card__photo">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+              <circle cx="32" cy="23" r="10"></circle>
+              <path d="M12 56c0-12 8-19 20-19s20 7 20 19"></path>
+            </svg>
+            <p>Photograph coming soon</p>
+          </div>
+          <div class="dentist-card__details">
+            <div>
+              <h3>{dentist.name}</h3>
+              <p>{dentist.qualification}</p>
+            </div>
+            <span aria-hidden="true">✳</span>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .dentists { padding-block: clamp(5rem, 9vw, 9rem); background: var(--color-white); }
+  .dentists__intro { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
+  h2 { margin-top: 1.25rem; font-size: clamp(3rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -0.04em; }
+  h2 em { color: var(--color-forest); }
+  .dentists__intro > p { max-width: 22rem; color: #59635a; font-size: 0.95rem; line-height: 1.8; }
+  .dentists__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin-top: 3.5rem; }
+  .dentist-card__photo { display: flex; width: 100%; min-height: 17rem; aspect-ratio: 1.5 / 1; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; background: #edf2e9; color: var(--color-forest); }
+  .dentist-card:nth-child(2) .dentist-card__photo { background: #f1eee6; }
+  .dentist-card__photo svg { width: 4.5rem; height: 4.5rem; }
+  .dentist-card__photo p { font-size: 0.75rem; font-weight: 600; }
+  .dentist-card__details { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; border-bottom: 1px solid #dce5d7; }
+  h3 { font-size: 1.7rem; }
+  .dentist-card__details p { margin-top: 0.25rem; color: var(--color-forest); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; }
+  .dentist-card__details > span { color: var(--color-beige); }
+  @media (max-width: 700px) {
+    .dentists__intro { align-items: start; flex-direction: column; }
+    .dentists__grid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

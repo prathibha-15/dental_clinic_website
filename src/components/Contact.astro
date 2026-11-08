@@ -1,0 +1,88 @@
+---
+const mapsUrl = 'https://maps.app.goo.gl/bE34e1f18xky9Uy47';
+---
+
+<section id="contact" class="contact" aria-labelledby="contact-title">
+  <div class="container">
+    <div class="contact__heading">
+      <p class="eyebrow"><span aria-hidden="true"></span> FIND US IN KRISHNAGIRI</p>
+      <h2 id="contact-title">We look forward to <em>welcoming you.</em></h2>
+    </div>
+    <div class="contact__grid">
+      <div class="contact__details">
+        <div class="contact__group">
+          <h3>Visit us</h3>
+          <address>Sudharsan Dental Clinic<br />14, Madras High Rd, New Pet,<br />Krishnagiri, Tamil Nadu 635002</address>
+          <a class="button button--primary contact__directions" href={mapsUrl} target="_blank" rel="noopener noreferrer">Get Directions <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+        </div>
+        <div class="contact__group">
+          <h3>Get in touch</h3>
+          <a class="contact__phone" href="tel:+919488417158">9488417158</a>
+          <a class="button button--secondary" href="https://wa.me/919488417158" target="_blank" rel="noopener noreferrer">WhatsApp us <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+        </div>
+        <div class="contact__group">
+          <h3>Opening hours</h3>
+          <dl>
+            <div><dt>Monday to Saturday</dt><dd>10:00 AM – 2:30 PM<br />5:30 PM – 8:30 PM</dd></div>
+            <div><dt>Sunday</dt><dd>10:00 AM – 1:30 PM</dd></div>
+          </dl>
+        </div>
+      </div>
+      <div class="contact__map" id="contact-map">
+        <div class="map-placeholder">
+          <span class="map-placeholder__icon" aria-hidden="true">⌖</span>
+          <p>Find us in Krishnagiri</p>
+          <span>14, Madras High Rd, New Pet</span>
+          <button type="button" class="button button--primary" id="load-map" hidden>Load map</button>
+          <small>Loading the map connects to Google Maps.</small>
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer">Open Google Maps <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const loadMap = document.querySelector<HTMLButtonElement>('#load-map');
+  if (loadMap) loadMap.hidden = false;
+  loadMap?.addEventListener('click', () => {
+    const map = document.querySelector<HTMLElement>('#contact-map');
+    if (!map) return;
+    const iframe = document.createElement('iframe');
+    iframe.title = 'Map of Sudharsan Dental Clinic, Krishnagiri';
+    iframe.src = 'https://maps.google.com/maps?q=14%2C%20Madras%20High%20Rd%2C%20New%20Pet%2C%20Krishnagiri%2C%20Tamil%20Nadu%20635002&output=embed';
+    iframe.loading = 'lazy';
+    iframe.referrerPolicy = 'no-referrer';
+    map.replaceChildren(iframe);
+  });
+</script>
+
+<style>
+  .contact { padding-block: clamp(5rem, 9vw, 9rem); background: var(--color-white); }
+  h2 { max-width: 17ch; margin-top: 1.25rem; font-size: clamp(2.8rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -0.04em; }
+  h2 em { color: var(--color-forest); }
+  .contact__grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr); gap: clamp(3rem, 7vw, 7rem); margin-top: 3.5rem; }
+  .contact__details { display: grid; gap: 2rem; }
+  .contact__group { padding-bottom: 2rem; border-bottom: 1px solid #dce5d7; }
+  h3 { margin-bottom: 0.75rem; font-size: 1.5rem; }
+  address { color: #59635a; font-size: 0.9rem; font-style: normal; line-height: 1.8; }
+  .contact__directions { margin-top: 1rem; }
+  .contact__phone { display: block; width: fit-content; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 700; }
+  .contact__phone:hover { color: var(--color-forest); }
+  dl { display: grid; gap: 1rem; margin: 0; color: #59635a; font-size: 0.88rem; line-height: 1.7; }
+  dl div { display: flex; justify-content: space-between; gap: 1rem; }
+  dt { color: var(--color-charcoal); font-weight: 600; }
+  dd { margin: 0; text-align: right; }
+  .contact__map { min-height: 32rem; background: var(--color-sage); }
+  .map-placeholder { display: flex; width: 100%; height: 100%; min-height: 32rem; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 2rem; text-align: center; }
+  .map-placeholder__icon { color: var(--color-forest); font-size: 3rem; line-height: 1; }
+  .map-placeholder p { font-family: var(--font-heading); font-size: 1.8rem; }
+  .map-placeholder > span:not(.map-placeholder__icon), .map-placeholder small { color: #485b47; font-size: 0.8rem; }
+  .map-placeholder button { margin-top: 0.75rem; cursor: pointer; }
+  .map-placeholder button[hidden] { display: none; }
+  .map-placeholder a { color: #3f5b3e; font-size: 0.8rem; font-weight: 700; text-decoration: underline; }
+  .contact__map :global(iframe) { display: block; width: 100%; min-height: 32rem; height: 100%; border: 0; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  @media (max-width: 800px) { .contact__grid { grid-template-columns: minmax(0, 1fr); } .contact__map, .map-placeholder, .contact__map :global(iframe) { min-height: 24rem; } }
+  @media (max-width: 400px) { dl div { flex-direction: column; gap: 0.25rem; } dd { text-align: left; } }
+</style>

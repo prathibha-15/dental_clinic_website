@@ -1,0 +1,152 @@
+---
+import { categories } from '../data/services';
+---
+
+<section id="appointment" class="appointment" aria-labelledby="appointment-title">
+  <div class="container appointment__inner">
+    <div class="appointment__intro">
+      <p class="eyebrow"><span aria-hidden="true"></span> REQUEST A VISIT</p>
+      <h2 id="appointment-title">Let's take care of <em>your smile.</em></h2>
+      <p>Share your details and our clinic will get in touch to arrange a suitable time for your visit.</p>
+      <div class="appointment__availability">
+        <strong>Online requests are not available yet.</strong>
+        <p>This form cannot send your details at present. Please <a href="tel:+919488417158">call 9488417158</a> to arrange a visit.</p>
+      </div>
+    </div>
+    <form class="appointment__form" id="appointment-form" novalidate>
+      <p class="form-intro">Fields marked * are required.</p>
+      <div class="form-grid">
+        <div class="field">
+          <label for="patient-name">Patient name *</label>
+          <input id="patient-name" name="patientName" type="text" autocomplete="name" required aria-describedby="patient-name-error" />
+          <p class="field-error" id="patient-name-error"></p>
+        </div>
+        <div class="field">
+          <label for="mobile">Mobile number *</label>
+          <input id="mobile" name="mobile" type="tel" autocomplete="tel-national" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" required aria-describedby="mobile-hint mobile-error" />
+          <p class="field-hint" id="mobile-hint">Enter a 10-digit Indian mobile number.</p>
+          <p class="field-error" id="mobile-error"></p>
+        </div>
+        <div class="field field--wide">
+          <label for="reason">Reason for visit *</label>
+          <select id="reason" name="reason" required aria-describedby="reason-error">
+            <option value="">Select a treatment</option>
+            {categories.map((category) => (
+              <optgroup label={category.title}>
+                {category.treatments.map((treatment) => <option value={treatment}>{treatment}</option>)}
+              </optgroup>
+            ))}
+          </select>
+          <p class="field-error" id="reason-error"></p>
+        </div>
+        <div class="field">
+          <label for="preferred-date">Preferred date <span>(optional)</span></label>
+          <input id="preferred-date" name="preferredDate" type="date" />
+        </div>
+        <div class="field">
+          <label for="preferred-time">Preferred time <span>(optional)</span></label>
+          <select id="preferred-time" name="preferredTime">
+            <option value="">Select a time</option>
+            <option>Morning</option><option>Evening</option><option>Any time</option>
+          </select>
+        </div>
+        <div class="field field--wide">
+          <label for="message">Additional message <span>(optional)</span></label>
+          <textarea id="message" name="message" rows="4" aria-describedby="message-hint"></textarea>
+          <p class="field-hint" id="message-hint">Please do not enter sensitive medical information in the message field.</p>
+        </div>
+        <div class="field field--wide">
+          <label class="consent" for="consent">
+            <input id="consent" name="consent" type="checkbox" required aria-describedby="consent-error" />
+            <span>I consent to being contacted about my appointment request. *</span>
+          </label>
+          <p class="field-error" id="consent-error"></p>
+        </div>
+      </div>
+      <button class="button button--primary submit-button" type="submit" disabled>Submit Appointment Request <span aria-hidden="true">↗</span></button>
+      <p id="form-status" class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
+      <noscript><p class="form-status">Online requests are unavailable. Please call the clinic to arrange a visit.</p></noscript>
+      <p class="form-notice">Submitting this form does not confirm an appointment. Our clinic will contact you to arrange a suitable visiting time.</p>
+    </form>
+  </div>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#appointment-form');
+  const submitButton = form?.querySelector<HTMLButtonElement>('.submit-button');
+  const status = form?.querySelector<HTMLElement>('#form-status');
+  const name = form?.querySelector<HTMLInputElement>('#patient-name');
+  const mobile = form?.querySelector<HTMLInputElement>('#mobile');
+  const reason = form?.querySelector<HTMLSelectElement>('#reason');
+  const consent = form?.querySelector<HTMLInputElement>('#consent');
+
+  if (form && submitButton && status && name && mobile && reason && consent) {
+    submitButton.disabled = false;
+    const fields = [
+      { control: name, error: 'patient-name-error', message: 'Please enter the patient name.', valid: () => name.value.trim().length > 0 },
+      { control: mobile, error: 'mobile-error', message: 'Enter a valid 10-digit Indian mobile number starting with 6, 7, 8 or 9.', valid: () => /^[6-9][0-9]{9}$/.test(mobile.value.trim()) },
+      { control: reason, error: 'reason-error', message: 'Please select a reason for your visit.', valid: () => reason.value !== '' },
+      { control: consent, error: 'consent-error', message: 'Please consent to being contacted.', valid: () => consent.checked },
+    ];
+
+    const validate = (field: typeof fields[number]) => {
+      const valid = field.valid();
+      const error = document.getElementById(field.error);
+      if (error) error.textContent = valid ? '' : field.message;
+      if (valid) field.control.removeAttribute('aria-invalid');
+      else field.control.setAttribute('aria-invalid', 'true');
+      return valid;
+    };
+
+    fields.forEach((field) => {
+      field.control.addEventListener('input', () => {
+        if (field.control.hasAttribute('aria-invalid')) validate(field);
+      });
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      status.textContent = '';
+      const invalid = fields.filter((field) => !validate(field));
+      if (invalid.length) {
+        invalid[0].control.focus();
+        return;
+      }
+      // Connect a secure backend here in the next phase; no form data is sent yet.
+      status.textContent = 'Your request was not sent. Online requests are not available yet; please call the clinic to arrange a visit.';
+      status.focus();
+    });
+  }
+</script>
+
+<style>
+  .appointment { padding-block: clamp(5rem, 9vw, 9rem); background: var(--color-ivory); }
+  .appointment__inner { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr); align-items: start; gap: clamp(3rem, 7vw, 7rem); }
+  h2 { margin-top: 1.25rem; font-size: clamp(2.8rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -0.04em; }
+  h2 em { color: var(--color-forest); }
+  .appointment__intro > p:not(.eyebrow) { max-width: 30rem; margin-top: 1.5rem; color: #59635a; font-size: 0.95rem; line-height: 1.85; }
+  .appointment__availability { margin-top: 2.5rem; padding: 1.5rem; border-left: 2px solid var(--color-beige); background: #eaf0e6; font-size: 0.85rem; line-height: 1.7; }
+  .appointment__availability p { margin-top: 0.5rem; }
+  .appointment__availability a { color: #3f5b3e; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .appointment__form { padding: clamp(1.5rem, 3.5vw, 3rem); background: var(--color-white); border: 1px solid #e0e5dc; }
+  .form-intro { margin-bottom: 1.5rem; color: #59635a; font-size: 0.8rem; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+  .field { min-width: 0; }
+  .field--wide { grid-column: 1 / -1; }
+  .field label { display: block; margin-bottom: 0.55rem; font-size: 0.82rem; font-weight: 700; }
+  .field label span:not(.consent span) { color: #59635a; font-weight: 400; }
+  .field input:not([type="checkbox"]), .field select, .field textarea { display: block; width: 100%; min-width: 0; min-height: 3.1rem; padding: 0.75rem; border: 1px solid #cbd4c8; border-radius: 0; background: #fff; color: var(--color-charcoal); font: inherit; font-size: 0.9rem; }
+  .field textarea { resize: vertical; }
+  .field [aria-invalid="true"] { border-color: #9c3939 !important; }
+  .field-hint, .field-error, .form-notice, .form-status { font-size: 0.75rem; line-height: 1.6; }
+  .field-hint { margin-top: 0.45rem; color: #59635a; }
+  .field-error:not(:empty) { margin-top: 0.4rem; color: #9c3939; }
+  .field .consent { display: flex; align-items: start; gap: 0.75rem; margin: 0; font-weight: 400; line-height: 1.5; }
+  .consent input { flex: none; width: 1.1rem; height: 1.1rem; margin-top: 0.1rem; accent-color: var(--color-forest); }
+  .submit-button { margin-top: 1.75rem; cursor: pointer; }
+  .submit-button:disabled { cursor: not-allowed; opacity: 0.7; }
+  .form-status:not(:empty) { margin-top: 1rem; color: #813434; font-weight: 700; }
+  .form-notice { margin-top: 1rem; color: #59635a; }
+  @media (max-width: 800px) { .appointment__inner { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 500px) { .form-grid { grid-template-columns: minmax(0, 1fr); } .field--wide { grid-column: auto; } .submit-button { width: 100%; } }
+</style>

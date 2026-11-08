@@ -1,0 +1,57 @@
+---
+const links = [
+  { label: 'Home', href: '#home' },
+  { label: 'About', href: '#about' },
+  { label: 'Treatments', href: '#treatments' },
+  { label: 'Our Dentists', href: '#dentists' },
+  { label: 'Gallery', href: '#gallery' },
+  { label: 'Contact', href: '#contact' },
+];
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div>
+        <a class="footer__brand" href="#home">SUDHARSAN <span>DENTAL CLINIC · EST. 1994</span></a>
+        <p class="footer__message">Honest guidance. Thoughtful care.<br />Fair and reasonable pricing.</p>
+      </div>
+      <nav aria-label="Footer navigation">
+        <h2>Explore</h2>
+        <ul>{links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}</ul>
+      </nav>
+      <div>
+        <h2>Contact</h2>
+        <a href="tel:+919488417158">9488417158</a>
+        <address>14, Madras High Rd, New Pet,<br />Krishnagiri, Tamil Nadu 635002</address>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p>© <span id="copyright-year">{new Date().getFullYear()}</span> Sudharsan Dental Clinic</p>
+      <div><a href="#privacy">Privacy Policy</a><p id="privacy">Privacy policy coming soon.</p></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const year = document.querySelector<HTMLElement>('#copyright-year');
+  if (year) year.textContent = String(new Date().getFullYear());
+</script>
+
+<style>
+  .footer { padding-block: clamp(4rem, 6vw, 6rem) 2rem; background: var(--color-charcoal); color: var(--color-ivory); }
+  .footer__grid { display: grid; grid-template-columns: 2fr 1fr 1.3fr; gap: 3rem; }
+  .footer__brand { display: inline-flex; flex-direction: column; gap: 0.3rem; font-family: var(--font-heading); font-size: 1.5rem; letter-spacing: 0.08em; }
+  .footer__brand span { color: #dce5d7; font-family: var(--font-body); font-size: 0.57rem; font-weight: 700; letter-spacing: 0.15em; }
+  .footer__message { margin-top: 1.5rem; color: #dce5d7; font-size: 0.85rem; line-height: 1.8; }
+  h2 { margin-bottom: 1rem; color: var(--color-white); font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  ul { display: grid; gap: 0.65rem; margin: 0; padding: 0; list-style: none; }
+  li, address, .footer__grid > div > a:not(.footer__brand) { color: #dce5d7; font-size: 0.85rem; line-height: 1.7; }
+  address { margin-top: 1rem; font-style: normal; }
+  a:hover { color: var(--color-white); text-decoration: underline; text-underline-offset: 3px; }
+  .footer__bottom { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid #647064; color: #dce5d7; font-size: 0.72rem; line-height: 1.6; }
+  .footer__bottom > div { text-align: right; }
+  .footer__bottom a { text-decoration: underline; text-underline-offset: 3px; }
+  @media (max-width: 700px) { .footer__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .footer__grid > div:first-child { grid-column: 1 / -1; } }
+  @media (max-width: 450px) { .footer__grid { grid-template-columns: minmax(0, 1fr); } .footer__grid > div:first-child { grid-column: auto; } .footer__bottom { flex-direction: column; } .footer__bottom > div { text-align: left; } }
+</style>
