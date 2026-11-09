@@ -7,6 +7,6 @@ export const categories = [
   { title: 'Orthodontics', icon: 'align', description: 'Options to help address teeth alignment.', treatments: ['Metal braces', 'Ceramic braces', 'Clear aligners', 'Retainers', 'Teeth alignment correction'] },
   { title: 'Additional available treatments', icon: 'sun', description: 'Options to discuss for the appearance of your teeth.', treatments: ['Teeth whitening', 'Dental veneers', 'Tooth reshaping', 'Gap closure'] },
   { title: 'Oral Surgery', icon: 'cross', description: 'Consultation and treatment options for tooth removal.', treatments: ['Simple tooth extraction', 'Wisdom tooth removal', 'Surgical extraction'] },
-  { title: "Children's Dentistry", icon: 'heart', description: 'Dental check-ups for children.', treatments: ["Children's dental check-ups"] },
-  { title: 'Diagnostics', icon: 'scan', description: 'Dental imaging to support assessment.', treatments: ['Dental X-rays'] },
+  { title: "Children's Dentistry", icon: 'heart', description: 'Dental check-ups for children.', treatments: ["Children's dental treatment"] },
+  { title: 'Diagnostics', icon: 'scan', description: 'Dental imaging to support assessment.', treatments: ['Digital X-rays'] },
 ] as const;

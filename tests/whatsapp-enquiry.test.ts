@@ -21,6 +21,14 @@ test('accepts a valid enquiry and every confirmed treatment', () => {
   }
 });
 
+test('accepts the updated children and diagnostics treatments', () => {
+  assert.deepEqual(categories.find((category) => category.title === "Children's Dentistry")?.treatments, ["Children's dental treatment"]);
+  assert.deepEqual(categories.find((category) => category.title === 'Diagnostics')?.treatments, ['Digital X-rays']);
+  for (const reason of ["Children's dental treatment", 'Digital X-rays']) {
+    assert.deepEqual(validateEnquiry({ ...valid, reason }), {});
+  }
+});
+
 test('rejects invalid required fields', () => {
   assert.ok(validateEnquiry({ ...valid, patientName: '  ' }).patientName);
   assert.ok(validateEnquiry({ ...valid, patientName: 'A\nB' }).patientName);
@@ -44,7 +52,7 @@ test('encodes message content without changing the destination or adding paramet
     ...valid,
     patientName: '  மீனா & Co  ',
     message: 'Hello & welcome + ? #\nSecond line = yes',
-    reason: "Children's dental check-ups",
+    reason: "Children's dental treatment",
   };
   const url = new URL(buildWhatsAppUrl(enquiry));
   assert.equal(url.origin, 'https://wa.me');
@@ -54,7 +62,7 @@ test('encodes message content without changing the destination or adding paramet
     'Appointment enquiry - Sudharsan Dental Clinic',
     'Patient name: மீனா & Co',
     'Mobile number: 9488417158',
-    "Reason for visit: Children's dental check-ups",
+    "Reason for visit: Children's dental treatment",
     'Preferred date: 2027-03-19',
     'Preferred time: Morning',
     'Additional message: Hello & welcome + ? #\nSecond line = yes',
